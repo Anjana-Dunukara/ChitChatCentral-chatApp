@@ -11,12 +11,22 @@ const $messages = document.querySelector("#messages");
 const messageTemplate = document.querySelector("#message-template").innerHTML;
 const locationTemplate = document.querySelector("#location-template").innerHTML;
 
-socket.on("welcomemessage", (welcome) => {
-  console.log(welcome);
+//Options
+const { username, room } = Qs.parse(Location.search, {
+  ignoreQueryPrefix: true,
 });
 
-//const text = document.querySelector("input");
+//Welcome message Rendering to the page
+socket.on("welcomemessage", (welcome) => {
+  console.log(welcome);
+  const html = Mustache.render(messageTemplate, {
+    message: welcome.text,
+    createdAt: moment(welcome.createdAt).format("h:mm a"),
+  });
+  $messages.insertAdjacentHTML("beforebegin", html);
+});
 
+//Sending message from the user to the server
 $messageForm.addEventListener("submit", (event) => {
   event.preventDefault();
 
@@ -37,20 +47,17 @@ $messageForm.addEventListener("submit", (event) => {
   });
 });
 
+//Reciving and rendering the message to the page
 socket.on("message", (message) => {
-  console.log(`Bot: ${message}`);
+  console.log(message);
   const html = Mustache.render(messageTemplate, {
-    message,
+    message: message.text,
+    createdAt: moment(message.createdAt).format("h:mm a"),
   });
   $messages.insertAdjacentHTML("beforeend", html);
 });
 
-socket.on("locationdetails", (location) => {
-  console.log(location);
-  const html = Mustache.render(locationTemplate, { url: location });
-  $messages.insertAdjacentHTML("beforeend", html);
-});
-
+//Sending location detail from the user to the server
 $locationSendButton.addEventListener("click", () => {
   if (!navigator.geolocation) {
     return alert("Geolocation is not supported by your browser..");
@@ -72,3 +79,16 @@ $locationSendButton.addEventListener("click", () => {
     });
   });
 });
+
+//Receving location details and rendering it to the page
+socket.on("locationdetails", (location) => {
+  console.log(location);
+  const html = Mustache.render(locationTemplate, {
+    url: location.url,
+    createdAt: moment(location.createdAt).format("h:mm a"),
+  });
+  $messages.insertAdjacentHTML("beforeend", html);
+});
+
+//sending user name and room information to the server
+socket.emit("join", { username, room });
