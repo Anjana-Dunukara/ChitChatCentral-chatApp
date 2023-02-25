@@ -1,13 +1,15 @@
-const genarateMessage = (text) => {
+const genarateMessage = (name, text) => {
   return {
-    text: text,
+    name,
+    text,
     createdAt: new Date().getTime(),
   };
 };
 
-const genarateLocation = (url) => {
+const genarateLocation = (name, url) => {
   return {
-    url: url,
+    name,
+    url,
     createdAt: new Date().getTime(),
   };
 };

@@ -4,6 +4,12 @@ const path = require("path");
 const socketio = require("socket.io");
 const Filter = require("bad-words");
 const { genarateMessage, genarateLocation } = require("./utils/messages");
+const {
+  addUser,
+  removeUser,
+  getUser,
+  getUsersInRoom,
+} = require("./utils/users");
 
 const app = express();
 const server = http.createServer(app);
@@ -19,36 +25,68 @@ app.use(express.static(publicDirectoryPath));
 io.on("connection", (socket) => {
   console.log("New WebSocket Connection");
 
-  socket.on("join", ({ username, room }) => {
-    socket.join(room);
+  socket.on("join", ({ username, room }, callback) => {
+    const { error, user } = addUser({ id: socket.id, username, room });
+    if (error) {
+      return callback(error);
+    }
 
+    socket.join(user.room);
+
+    socket.emit("welcomemessage", genarateMessage("Admin", "Welcome"));
     socket.broadcast
-      .to(room)
-      .emit("message", genarateMessage(`${username} has joined!`));
-    socket.emit("welcomemessage", genarateMessage("Welcome"));
+      .to(user.room)
+      .emit(
+        "message",
+        genarateMessage("Admin", `${user.username} has joined!`)
+      );
+
+    io.to(user.room).emit("roomdata", {
+      room: user.room,
+      users: getUsersInRoom(user.room),
+    });
+
+    callback();
   });
 
+  //sending messages to users in the same room
   socket.on("messageSend", (message, callback) => {
+    const user = getUser(socket.id);
+
     const filter = new Filter();
 
     if (filter.isProfane(message)) {
       return callback("Profanity is not allowed!!");
     }
 
-    io.emit("message", genarateMessage(message));
+    io.to(user.room).emit("message", genarateMessage(user.username, message));
     callback();
   });
 
   //user disconnected message to individual users
   socket.on("disconnect", () => {
-    io.emit("message", genarateMessage("A User has left the chat..!!"));
+    const user = removeUser(socket.id);
+
+    if (user) {
+      io.to(user.room).emit(
+        "message",
+        genarateMessage("Admin", `${user.username} has left the chat!`)
+      );
+      io.to(user.room).emit("roomdata", {
+        room: user.room,
+        users: getUsersInRoom(user.room),
+      });
+    }
   });
 
   //location sending to individual users
   socket.on("sendLocation", (location, callback) => {
-    io.emit(
+    const user = getUser(socket.id);
+
+    io.to(user.room).emit(
       "locationdetails",
       genarateLocation(
+        user.username,
         `https://google.com/maps?q=${location.latitude},${location.longitude}`
       )
     );

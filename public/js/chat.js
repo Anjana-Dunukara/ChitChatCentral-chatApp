@@ -20,6 +20,7 @@ const { username, room } = Qs.parse(location.search, {
 socket.on("welcomemessage", (welcome) => {
   console.log(welcome);
   const html = Mustache.render(messageTemplate, {
+    name: welcome.name,
     message: welcome.text,
     createdAt: moment(welcome.createdAt).format("h:mm a"),
   });
@@ -51,6 +52,7 @@ $messageForm.addEventListener("submit", (event) => {
 socket.on("message", (message) => {
   console.log(message);
   const html = Mustache.render(messageTemplate, {
+    name: message.name,
     message: message.text,
     createdAt: moment(message.createdAt).format("h:mm a"),
   });
@@ -84,6 +86,7 @@ $locationSendButton.addEventListener("click", () => {
 socket.on("locationdetails", (location) => {
   console.log(location);
   const html = Mustache.render(locationTemplate, {
+    name: location.name,
     url: location.url,
     createdAt: moment(location.createdAt).format("h:mm a"),
   });
@@ -91,4 +94,15 @@ socket.on("locationdetails", (location) => {
 });
 
 //sending user name and room information to the server
-socket.emit("join", { username, room });
+socket.emit("join", { username, room }, (error) => {
+  if (error) {
+    alert(error);
+    location.href = "/";
+  }
+});
+
+//Listning to users in the joining and leaving
+socket.on("roomdata", ({ room, users }) => {
+  console.log(room);
+  console.log(users);
+});
