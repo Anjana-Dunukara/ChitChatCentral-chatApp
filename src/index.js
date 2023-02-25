@@ -18,7 +18,10 @@ io.on("connection", (socket) => {
   console.log("New WebSocket Connection");
   socket.broadcast.emit("message", "A New User has joined.!");
 
-  socket.emit("welcomemessage", "Welcome!!");
+  socket.emit("welcomemessage", {
+    Text: "Welcome!",
+    createdAt: new Date().getTime(),
+  });
 
   socket.on("messageSend", (message, callback) => {
     const filter = new Filter();
@@ -37,7 +40,7 @@ io.on("connection", (socket) => {
 
   socket.on("sendLocation", (location, callback) => {
     io.emit(
-      "message",
+      "locationdetails",
       `https://google.com/maps?q=${location.latitude},${location.longitude}`
     );
     callback();
