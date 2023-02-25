@@ -10,11 +10,35 @@ const $messages = document.querySelector("#messages");
 //Templates
 const messageTemplate = document.querySelector("#message-template").innerHTML;
 const locationTemplate = document.querySelector("#location-template").innerHTML;
+const sidebarTemplate = document.querySelector("#sidebar-template").innerHTML;
 
 //Options
 const { username, room } = Qs.parse(location.search, {
   ignoreQueryPrefix: true,
 });
+
+const autoscroll = () => {
+  //New message element
+  const $newMessage = $messages.lastElementChild;
+
+  //Height of the new message
+  const newMessagStyle = getComputedStyle($newMessage);
+  const newMessageMargin = parseInt(newMessagStyle.marginBottom);
+  const newMessageHeight = $newMessage.offsetHeight + newMessageMargin;
+
+  //Visible height
+  const visibleHeight = $messages.offsetHeight;
+
+  //Height of message container
+  const containerHeight = $messages.scrollHeight;
+
+  //How far have i scrolled?
+  const scrollOffset = $messages.scrollTop + visibleHeight;
+
+  if (containerHeight - newMessageHeight <= scrollOffset) {
+    $messages.scrollTop = $messages.scrollHeight;
+  }
+};
 
 //Welcome message Rendering to the page
 socket.on("welcomemessage", (welcome) => {
@@ -57,6 +81,7 @@ socket.on("message", (message) => {
     createdAt: moment(message.createdAt).format("h:mm a"),
   });
   $messages.insertAdjacentHTML("beforeend", html);
+  autoscroll();
 });
 
 //Sending location detail from the user to the server
@@ -91,6 +116,7 @@ socket.on("locationdetails", (location) => {
     createdAt: moment(location.createdAt).format("h:mm a"),
   });
   $messages.insertAdjacentHTML("beforeend", html);
+  autoscroll();
 });
 
 //sending user name and room information to the server
@@ -103,6 +129,10 @@ socket.emit("join", { username, room }, (error) => {
 
 //Listning to users in the joining and leaving
 socket.on("roomdata", ({ room, users }) => {
-  console.log(room);
-  console.log(users);
+  const html = Mustache.render(sidebarTemplate, {
+    room,
+    users,
+  });
+
+  document.querySelector("#sidebar").innerHTML = html;
 });
